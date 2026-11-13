@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Math Workbook">
+<title>Math Workbook</title>
+<meta name="theme-color" content="#1f4fc4">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+@font-face{font-family:'Fredoka';font-weight:500;font-display:swap;src:url(fonts/fredoka-500.woff2) format('woff2')}
+@font-face{font-family:'Fredoka';font-weight:600;font-display:swap;src:url(fonts/fredoka-600.woff2) format('woff2')}
+@font-face{font-family:'Nunito';font-weight:600;font-display:swap;src:url(fonts/nunito-600.woff2) format('woff2')}
+@font-face{font-family:'Nunito';font-weight:800;font-display:swap;src:url(fonts/nunito-800.woff2) format('woff2')}
+</style>
+<style>
+/* Layout: squared notebook paper behind white cards. Home is a table of contents of lesson rows; each lesson is a learn box then practice cards. */
+:root{
+  --paper:#f6f9ff; --grid:#d3e2f6; --card:#ffffff; --text:#1d2740; --muted:#5a6685;
+  --ink:#1f4fc4; --line:#b7cbe9; --good:#1b7f48; --good-bg:#e4f6ea; --try:#b4530b; --try-bg:#fff1df;
+  --learn-bg:#eaf2ff; --dotA:#e8731a; --dotB:#2f6fed;
+  --display:'Fredoka',system-ui,sans-serif; --body:'Nunito',system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111a2d; --grid:#1d2a46; --card:#18233c; --text:#e8edf9; --muted:#9aa6c4;
+    --ink:#8fb0ff; --line:#33466d; --good:#63d392; --good-bg:#15382a; --try:#ffb470; --try-bg:#3b2a15;
+    --learn-bg:#1b2a4d; --dotA:#ffa45c; --dotB:#8fb0ff;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111a2d; --grid:#1d2a46; --card:#18233c; --text:#e8edf9; --muted:#9aa6c4;
+  --ink:#8fb0ff; --line:#33466d; --good:#63d392; --good-bg:#15382a; --try:#ffb470; --try-bg:#3b2a15;
+  --learn-bg:#1b2a4d; --dotA:#ffa45c; --dotB:#8fb0ff;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+  color:var(--text); font-family:var(--body); font-weight:600; font-size:1.05rem; line-height:1.4;
+  padding-bottom:3rem;
+}
+button{touch-action:manipulation}
+.wrap{max-width:900px; margin:0 auto; padding:0 16px}
+h1{font-family:var(--display); font-weight:600; font-size:clamp(2.2rem,7vw,3.2rem); margin:0; color:var(--ink); text-wrap:balance; line-height:1.1}
+h2{font-family:var(--display); font-weight:600; font-size:1.55rem; margin:0; text-wrap:balance}
+
+/* home */
+.cover{margin-top:1.4rem; background:var(--card); border:2px solid var(--line); border-left:14px solid var(--ink); border-radius:20px; padding:1.2rem 1.3rem}
+.cover .sub{font-family:var(--display); font-size:1.3rem; color:var(--muted); margin:.2rem 0 1rem}
+.who{display:flex; flex-wrap:wrap; align-items:center; gap:.5rem 1rem}
+.who label{display:flex; align-items:center; gap:.6rem; font-weight:800; flex-wrap:wrap}
+#name{font:inherit; font-size:1.3rem; border:0; border-bottom:3px solid var(--line); background:transparent; color:var(--text); padding:.2rem .3rem; width:min(18ch,100%)}
+.prog{display:flex; align-items:center; gap:1rem; margin-top:1rem}
+.prog strong{font-family:var(--display); font-weight:600; color:var(--ink); white-space:nowrap}
+.meter{flex:1; height:14px; border-radius:99px; background:var(--grid); overflow:hidden}
+.meter i{display:block; height:100%; width:0; background:var(--good); border-radius:99px; transition:width .35s}
+.unit{font-family:var(--display); font-weight:600; font-size:1.25rem; color:var(--ink); margin:1.6rem 0 .6rem}
+#toc{display:flex; flex-direction:column; gap:.6rem}
+.tile{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:.9rem; min-height:68px; padding:.7rem 1rem; border:2px solid var(--line); border-radius:16px; background:var(--card); color:var(--text); font:inherit; text-align:left; cursor:pointer; width:100%}
+.tile .num{display:grid; place-items:center; width:2.6rem; height:2.6rem; border-radius:50%; background:var(--ink); color:var(--card); font-family:var(--display); font-weight:600; font-size:1.3rem}
+.tile .tt strong{display:block; font-family:var(--display); font-weight:600; font-size:1.25rem}
+.tile .tt small{display:block; color:var(--muted); font-weight:600; font-size:.95rem}
+.tile .st{font-weight:800; color:var(--ink); white-space:nowrap}
+.tile.next{border-color:var(--ink); box-shadow:0 4px 0 var(--ink)}
+.tile.done{border-color:var(--good); background:var(--good-bg)}
+.tile.done .num{background:var(--good)}
+.tile.done .st{color:var(--good)}
+.tile.locked{border-style:dashed; opacity:.6; cursor:default}
+.tile.locked .num{background:var(--muted)}
+.tile.locked .st{color:var(--muted)}
+
+/* lesson */
+.bar{position:sticky; top:0; z-index:5; background:var(--card); border-bottom:2px solid var(--line); box-shadow:0 2px 0 var(--grid)}
+.bar .wrap{display:flex; align-items:center; gap:.8rem; padding-top:.55rem; padding-bottom:.55rem; flex-wrap:wrap}
+.bar h2{font-size:1.25rem; flex:1 1 12rem; color:var(--ink)}
+.bar .sc{font-family:var(--display); font-weight:600; white-space:nowrap}
+.bar .meter{flex:1 1 6rem; min-width:5rem}
+button.back{font:inherit; font-weight:800; color:var(--ink); background:var(--card); border:2px solid var(--ink); border-radius:12px; padding:.45rem .9rem; cursor:pointer; min-height:44px}
+main{display:flex; flex-direction:column; gap:1.4rem; padding-top:1.4rem}
+.learn{background:var(--learn-bg); border:2px solid var(--ink); border-radius:20px; padding:1.1rem 1.2rem}
+.pill{display:inline-block; font-family:var(--display); font-weight:600; font-size:.95rem; background:var(--ink); color:var(--card); border-radius:99px; padding:.05rem .8rem; margin-bottom:.5rem}
+.learn p{margin:.2rem 0 .8rem; font-size:1.15rem}
+.demos{display:flex; flex-wrap:wrap; gap:1.2rem}
+.demo{display:flex; flex-direction:column; gap:.4rem; align-items:flex-start}
+.demo .cap{font-family:var(--display); font-weight:500; font-size:1.25rem}
+.card{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:1.1rem 1.1rem 1.2rem}
+.card-head{display:flex; align-items:center; gap:.7rem}
+.badge{display:grid; place-items:center; width:2.2rem; height:2.2rem; border-radius:50%; background:var(--ink); color:var(--card); font-family:var(--display); font-weight:600; font-size:1.2rem; flex:none}
+.intro{margin:.5rem 0 1rem; color:var(--muted)}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,235px),1fr)); gap:.7rem}
+.grid.wide{grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr))}
+.grid.words{grid-template-columns:1fr}
+.prob{display:flex; align-items:center; flex-wrap:wrap; gap:.5rem .7rem; padding:.7rem .8rem; border:2px solid var(--line); border-radius:14px; background:var(--paper); position:relative}
+.prob.stack{flex-direction:column; align-items:flex-start}
+.prob.ok{border-color:var(--good); background:var(--good-bg)}
+.prob.bad{border-color:var(--try); background:var(--try-bg)}
+.prob.ok::after{content:"\2713"; position:absolute; top:.3rem; right:.6rem; color:var(--good); font-weight:800; font-size:1.2rem}
+.toprow{display:flex; align-items:center; flex-wrap:wrap; gap:.5rem .8rem}
+.eq{display:flex; align-items:center; flex-wrap:wrap; gap:.4rem .5rem; font-family:var(--display); font-weight:500; font-size:1.5rem}
+.box{width:2.6em; height:2.3em; font:inherit; font-family:var(--display); font-size:1.4rem; text-align:center; color:var(--ink); background:var(--card); border:2px solid var(--line); border-bottom-width:4px; border-radius:10px; padding:0}
+.box.right{border-color:var(--good); color:var(--good)}
+.box.wrong{border-color:var(--try); border-style:dashed; color:var(--try)}
+.box:focus,.free:focus,#name:focus,button:focus-visible,.tile:focus-visible{outline:3px solid var(--ink); outline-offset:2px}
+.side{font-family:var(--display); font-weight:500; font-size:1.8rem; min-width:1.2em; text-align:center}
+.sign{width:3.2rem; height:3.2rem; border-radius:50%; border:3px dashed var(--line); background:var(--card); color:var(--ink); font-family:var(--display); font-size:1.7rem; font-weight:600; cursor:pointer; padding:0; flex:none}
+.sign[data-v]:not([data-v=""]){border-style:solid; border-color:var(--ink)}
+.sign:disabled{cursor:default; border-color:var(--good); color:var(--good)}
+.prob:has(.sign){justify-content:center; gap:.9rem}
+.wordp{display:block}
+.wordp .q{margin:0 0 .6rem; font-size:1.15rem; padding-right:1.6rem}
+.tag{display:inline-block; font-size:.8rem; font-weight:800; color:var(--ink); border:2px solid var(--ink); border-radius:99px; padding:0 .55rem; margin-right:.5rem; vertical-align:.1em}
+.row{display:flex; flex-wrap:wrap; gap:.5rem 1.2rem; align-items:center}
+.row label{display:flex; align-items:center; gap:.5rem; font-weight:800}
+.free{font:inherit; font-family:var(--display); font-size:1.25rem; width:11ch; padding:.35rem .5rem; border:2px solid var(--line); border-bottom-width:4px; border-radius:10px; background:var(--card); color:var(--ink)}
+.model{margin:.6rem 0 0; color:var(--good); font-weight:800}
+/* dot pictures */
+.dots{display:grid; grid-template-columns:repeat(5,1.6rem); gap:.35rem}
+.dot{display:block; width:1.6rem; height:1.6rem; border-radius:50%}
+.dot.a{background:var(--dotA)}
+.dot.b{background:var(--dotB)}
+.dot.hid{border:3px dashed var(--muted); background:transparent}
+.frames{display:flex; flex-wrap:wrap; gap:1rem}
+.frame{display:grid; grid-template-columns:repeat(5,2.3rem); grid-auto-rows:2.3rem; border-top:2px solid var(--muted); border-left:2px solid var(--muted); background:var(--card)}
+.cell{display:grid; place-items:center; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted)}
+.actions{display:flex; align-items:center; flex-wrap:wrap; gap:.7rem 1rem; margin-top:1rem}
+button.go{font:inherit; font-family:var(--display); font-weight:600; font-size:1.2rem; color:#fff; background:var(--ink); border:0; border-bottom:4px solid rgba(0,0,0,.25); border-radius:12px; padding:.6rem 1.3rem; cursor:pointer; min-height:48px}
+:root[data-theme="dark"] button.go{color:#0d1630}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.go{color:#0d1630}}
+button.go:active{transform:translateY(2px); border-bottom-width:2px}
+.msg{font-weight:800; color:var(--try)}
+.msg.good{color:var(--good)}
+.finish{background:var(--good-bg); border:2px solid var(--good); border-radius:20px; padding:1.1rem 1.2rem}
+.finish h2{color:var(--good)}
+.finish .actions{margin-top:.8rem}
+button.quiet{font:inherit; font-weight:800; color:var(--muted); background:var(--card); border:2px solid var(--line); border-radius:12px; padding:.5rem 1rem; cursor:pointer; min-height:44px}
+button.quiet.small{font-size:.95rem; padding:.3rem .8rem; color:var(--ink); min-height:38px}
+details{background:var(--card); border:2px solid var(--line); border-radius:16px; padding:.8rem 1rem}
+summary{cursor:pointer; font-weight:800}
+details h3{font-family:var(--display); font-weight:600; font-size:1.1rem; margin:1rem 0 .3rem}
+details p, details li{margin:.1rem 0; font-variant-numeric:tabular-nums}
+details ul{margin:.3rem 0; padding-left:1.2rem}
+.tools{display:flex; flex-direction:column; gap:.8rem; margin-top:1.6rem}
+.tools label{display:flex; align-items:center; gap:.6rem; font-weight:800}
+.tools input[type=checkbox]{width:1.4rem; height:1.4rem}
+.tools .row2{display:flex; flex-wrap:wrap; gap:.8rem; align-items:center}
+@media (prefers-reduced-motion: reduce){.meter i{transition:none}}
+@media (max-width:480px){.card{padding:.9rem .8rem 1rem}.tile{gap:.6rem;padding:.6rem .7rem}.tile .st{font-size:.9rem}}
+</style>
+</head>
+<body>
+
+<section id="home">
+  <div class="wrap">
+    <div class="cover">
+      <h1>Math Workbook</h1>
+      <p class="sub">Grade 1</p>
+      <div class="who"><label for="name">This workbook belongs to <input id="name" type="text" autocomplete="off" maxlength="30"></label></div>
+      <div class="prog"><strong id="homeProgress">0 of 14 lessons done</strong><div class="meter" aria-hidden="true"><i id="homeMeter"></i></div></div>
+    </div>
+    <div id="toc"></div>
+    <div class="tools">
+      <details>
+        <summary>For grown-ups</summary>
+        <h3>Using it on an iPad</h3>
+        <ul>
+          <li>Open the page address in Safari, tap the Share button, then Add to Home Screen. After that, always open the workbook from the home screen icon so her progress stays in one place.</li>
+          <li>Progress is saved on the iPad, inside the home screen icon. Opening the same address in Safari starts a separate copy, and deleting the icon erases her progress.</li>
+        </ul>
+        <h3>How the lessons work</h3>
+        <ul>
+          <li>Each lesson starts with a short Learn box, then two warm-up problems from the last lesson, then new practice.</li>
+          <li>A lesson is finished when every problem is correct. Wrong answers turn orange so she can fix them and check again.</li>
+          <li>The next lesson opens after the one before it is finished.</li>
+          <li>Every lesson has an answer key at the bottom.</li>
+        </ul>
+      </details>
+      <label for="unlockAll"><input type="checkbox" id="unlockAll"> Open every lesson (for grown-ups)</label>
+      <div class="row2"><button class="quiet" id="resetAll" type="button">Erase all progress</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="lesson" hidden>
+  <div class="bar"><div class="wrap">
+    <button class="back" id="backBtn" type="button">&larr; Lessons</button>
+    <h2 id="lTitle"></h2>
+    <span class="sc" id="lScore" aria-live="polite"></span>
+    <div class="meter" aria-hidden="true"><i id="lMeter"></i></div>
+  </div></div>
+  <main class="wrap" id="lBody"></main>
+</section>
+
+<script>
+/* ---------- data ---------- */
+function P(t,a,pic,hint,hl){var o={t:t,a:a};if(pic)o.pic=pic;if(hint)o.hint=true;if(hl)o.hl=hl;return o;}
+function part(total,known){return {type:'part',total:total,known:known};}
+function fr(n){return {type:'frame',n:n};}
+function mv(a,b){return {type:'move',a:a,b:b};}
+function plus(k){return {type:'plus',k:k};}
+function two(a,b){return {type:'two',a:a,b:b};}
+function one(n){return {type:'one',n:n};}
+function C(l,r,a){return {n:[l,r],a:a};}
+function W(q,s,a,ch){var o={q:q,s:s,a:a};if(ch)o.ch=true;return o;}
+var TWO='orange: _  blue: _  all: _';
+var MOVE='moved: _  left over: _  in all: _';
+function MT(a,b){return a+' + '+b+' = '+a+' + _ + _ = _';}
+var WARM='A quick one from the last lesson.';
+
+var UNITS=['Unit 1: Number parts','Unit 2: Adding, comparing and word problems','Unit 3: Making ten'];
+
+var LESSONS=[
+ {unit:1,title:'Counting groups',idea:'Count two colors of dots',
+  learn:{text:'Dots can come in two colors. Count the orange ones, count the blue ones, then count all of them together.',demos:[{pic:two(3,2),cap:'3 orange and 2 blue make 5 dots in all.'}]},
+  sets:[
+   {title:'Warm-up',intro:'How many dots are there?',items:[P('dots: _',[4],one(4)),P('dots: _',[2],one(2)),P('dots: _',[5],one(5)),P('dots: _',[3],one(3))]},
+   {title:'Count the dots',wide:true,intro:'Count the orange dots, the blue dots, and all the dots together.',items:[
+     P(TWO,[3,2,5],two(3,2)),P(TWO,[1,4,5],two(1,4)),P(TWO,[4,2,6],two(4,2)),P(TWO,[3,3,6],two(3,3)),P(TWO,[2,2,4],two(2,2)),P(TWO,[5,1,6],two(5,1))]}]},
+
+ {unit:1,title:'The hidden part',idea:'Find the part you cannot see',
+  learn:{text:'The whole is all of the dots. Some dots are showing and some are hiding. The dashed circles are the hidden ones. Count them to find the hidden part.',demos:[{pic:part(5,3),cap:'5 = 3 + 2'}]},
+  sets:[
+   {title:'Warm-up',wide:true,intro:WARM,items:[P(TWO,[2,3,5],two(2,3)),P(TWO,[4,1,5],two(4,1))]},
+   {title:'Find the hidden part',intro:'How many dots are hiding?',items:[
+     P('4 = 1 + _',[3],part(4,1)),P('3 = 2 + _',[1],part(3,2)),P('5 = 3 + _',[2],part(5,3)),P('5 = 4 + _',[1],part(5,4)),
+     P('4 = 3 + _',[1],part(4,3)),P('5 = 2 + _',[3],part(5,2)),P('3 = 1 + _',[2],part(3,1)),P('4 = 2 + _',[2],part(4,2))]}]},
+
+ {unit:1,title:'Either side',idea:'The hidden part can come first',
+  learn:{text:'The hidden part can be on either side of the plus sign. 5 = _ + 1 means the same thing as 5 = 1 + _.',demos:[{pic:part(5,1),cap:'5 = 1 + 4 and 5 = 4 + 1'}]},
+  sets:[
+   {title:'Warm-up',intro:WARM,items:[P('4 = 1 + _',[3],part(4,1)),P('5 = 3 + _',[2],part(5,3))]},
+   {title:'Find the hidden part',intro:'How many dots are hiding?',items:[
+     P('5 = _ + 1',[4],part(5,1)),P('4 = _ + 3',[1],part(4,3)),P('6 = _ + 2',[4],part(6,2)),P('6 = 5 + _',[1],part(6,5)),
+     P('6 = _ + 4',[2],part(6,4)),P('6 = 3 + _',[3],part(6,3)),P('5 = _ + 2',[3],part(5,2)),P('6 = 1 + _',[5],part(6,1))]}]},
+
+ {unit:1,title:'Parts in your head',idea:'Number parts without the dots',
+  learn:{text:'Now try it in your head. Think: this many in all, I know this part, how many is the other part? If you get stuck, tap Show dots.'},
+  sets:[
+   {title:'Warm-up',intro:WARM,items:[P('6 = _ + 2',[4],part(6,2)),P('4 = _ + 3',[1],part(4,3))]},
+   {title:'Number parts',intro:'Try it in your head first.',items:[
+     P('4 = 2 + _',[2],part(4,2),true),P('5 = 2 + _',[3],part(5,2),true),P('3 = 1 + _',[2],part(3,1),true),P('5 = _ + 1',[4],part(5,1),true),
+     P('6 = _ + 3',[3],part(6,3),true),P('6 = 1 + _',[5],part(6,1),true),P('6 = 4 + _',[2],part(6,4),true),P('5 = _ + 3',[2],part(5,3),true)]}]},
+
+ {unit:1,title:'Parts up to 10',idea:'Bigger numbers, same idea',
+  learn:{text:'Bigger numbers work the same way. Dots in two rows of five are easy to count. One full row is 5.',demos:[{pic:part(8,5),cap:'8 = 5 + 3'}]},
+  sets:[
+   {title:'Warm-up',intro:WARM,items:[P('5 = 2 + _',[3],part(5,2),true),P('6 = _ + 3',[3],part(6,3),true)]},
+   {title:'Number parts',intro:'Try it in your head first.',items:[
+     P('7 = 3 + _',[4],part(7,3),true),P('8 = 5 + _',[3],part(8,5),true),P('9 = 6 + _',[3],part(9,6),true),P('10 = 4 + _',[6],part(10,4),true),
+     P('7 = _ + 2',[5],part(7,2),true),P('8 = _ + 6',[2],part(8,6),true),P('9 = 4 + _',[5],part(9,4),true),P('10 = _ + 7',[3],part(10,7),true)]}]},
+
+ {unit:2,title:'Fill the box',idea:'Adding and taking away with a missing number',
+  learn:{text:'Number parts, adding and taking away are all connected. 3 + _ = 7 asks: 3 and how many more make 7?',demos:[{pic:part(7,3),cap:'3 + 4 = 7, so 7 − 3 = 4'}]},
+  sets:[
+   {title:'Warm-up',intro:WARM,items:[P('6 = 2 + _',[4],part(6,2),true),P('8 = _ + 5',[3],part(8,5),true)]},
+   {title:'Fill the box',intro:'What number goes in the box? Dots can help with the adding ones.',items:[
+     P('3 + _ = 7',[4],part(7,3),true),P('_ + 4 = 9',[5],part(9,4),true),P('10 − _ = 6',[4]),P('_ − 2 = 5',[7]),
+     P('2 + _ = 8',[6],part(8,2),true),P('8 − _ = 3',[5]),P('_ + 5 = 9',[4],part(9,5),true),P('9 − _ = 2',[7])]}]},
+
+ {unit:2,title:'Chain problems',idea:'Add and subtract in a row',
+  learn:{text:'Do one step at a time, left to right. For 4 + 3 − 2, first do 4 + 3 = 7. Then do 7 − 2 = 5.'},
+  sets:[
+   {title:'Warm-up',intro:WARM,items:[P('5 + _ = 8',[3]),P('9 − _ = 4',[5])]},
+   {title:'Chain problems',intro:'Left to right, one step at a time.',items:[
+     P('4 + 3 − 2 = _',[5]),P('9 − 5 + 4 = _',[8]),P('6 + 2 + 1 = _',[9]),P('10 − 3 − 4 = _',[3]),P('5 + 5 − 3 = _',[7]),
+     P('8 − 2 + 1 = _',[7]),P('1 + 5 + 2 = _',[8]),P('10 − 6 + 2 = _',[6]),P('7 − 4 + 6 = _',[9]),P('3 + 6 − 5 = _',[4])]}]},
+
+ {unit:2,title:'Compare',idea:'Which is more? Which is less?',
+  learn:{text:'These signs compare numbers. < means less than, > means more than, and = means the same. The open side of the sign faces the bigger number. So 3 < 5, 5 > 3 and 4 = 4.'},
+  sets:[
+   {title:'Warm-up',intro:WARM,items:[P('3 + 4 − 2 = _',[5]),P('9 − 3 − 2 = _',[4])]},
+   {title:'Compare',kind:'compare',wide:true,intro:'Tap the circle until it shows <, > or =.',items:[
+     C('7','5 + 1','>'),C('3 + 4','8','<'),C('9 − 4','2 + 3','='),C('6 + 3','10','<'),C('10 − 2','4 + 4','='),
+     C('5','9 − 6','>'),C('2 + 2','7 − 2','<'),C('8 − 1','3 + 3','>'),C('1 + 8','10 − 1','='),C('10 − 6','1 + 2','>')]}]},
+
+ {unit:2,title:'Word problems',idea:'Stories that need adding or taking away',
+  learn:{text:'Read the story slowly. If groups come together, add. If some go away, or you are asked how many more, subtract. Mia had 6 apples and gave away 2, so 6 − 2 = 4.'},
+  sets:[
+   {title:'Warm-up',kind:'compare',wide:true,intro:'Tap the circle until it shows <, > or =.',items:[C('6 + 1','8','<'),C('9 − 2','3 + 4','=')]},
+   {title:'Word problems',kind:'word',intro:'Read the problem. Write the number sentence, then type the answer.',items:[
+     W('Nora had 8 balloons. 3 balloons popped. How many balloons does Nora have left?','8 − 3 = 5',5),
+     W('There are 3 cats and 6 dogs at the park. How many animals are there in all?','3 + 6 = 9',9),
+     W('Omar has 5 pencils. Pia has 3 more pencils than Omar. How many pencils does Pia have?','5 + 3 = 8',8),
+     W('Jules has 10 stickers. Kai has 7 stickers. How many more stickers does Jules have than Kai?','10 − 7 = 3',3),
+     W('A shelf has 9 books. 4 books are big and the rest are small. How many books are small?','9 − 4 = 5',5),
+     W('Wes found 2 shells in the morning and 6 shells in the afternoon. How many shells did he find?','2 + 6 = 8',8),
+     W('Tess had 5 cookies. Her mom gave her 4 more. Then Tess ate 3. How many cookies does Tess have now?','5 + 4 − 3 = 6',6,true),
+     W('Finn has 10 grapes. He has 4 more grapes than Rosa. How many grapes does Rosa have?','10 − 4 = 6',6,true)]}]},
+
+ {unit:3,title:'Ten frames',idea:'How many more to make 10?',
+  learn:{text:'A ten frame has 10 spaces. When every space has a dot, that is 10. How many more dots fill the frame?',demos:[{pic:fr(7),cap:'7 + 3 = 10'}]},
+  sets:[
+   {title:'Warm-up',kind:'word',intro:WARM,items:[
+     W('Owen has 6 blocks. He finds 3 more. How many blocks does Owen have?','6 + 3 = 9',9),
+     W('There are 9 fish. 4 fish swim away. How many fish are left?','9 − 4 = 5',5)]},
+   {title:'Fill the ten frame',intro:'How many more dots fill the ten frame?',items:[9,8,5,7,6,4,3,2].map(function(n){return P(n+' + _ = 10',[10-n],fr(n));})}]},
+
+ {unit:3,title:'Pairs that make 10',idea:'Know the pairs without the picture',
+  learn:{text:'These pairs make 10: 1 and 9, 2 and 8, 3 and 7, 4 and 6, 5 and 5. Knowing them helps with bigger adding later.',demos:[{pic:fr(6),cap:'6 + 4 = 10'}]},
+  sets:[
+   {title:'Warm-up',intro:WARM,items:[P('7 + _ = 10',[3],fr(7)),P('4 + _ = 10',[6],fr(4))]},
+   {title:'Pairs that make 10',intro:'Try it in your head. If you get stuck, tap Show ten frame.',items:[
+     ['10 = 1 + _',9,1],['10 = 6 + _',4,6],['10 = _ + 7',3,7],['10 = 5 + _',5,5],['10 = 8 + _',2,8],['10 = _ + 4',6,4],['10 = 9 + _',1,9],['10 = _ + 3',7,3]
+    ].map(function(x){return P(x[0],[x[1]],fr(x[2]),true,'ten frame');})}]},
+
+ {unit:3,title:'Ten and some more',idea:'Numbers from 11 to 19',
+  learn:{text:'Numbers from 11 to 19 are 10 and some more. 13 is a full ten frame and 3 more dots.',demos:[{pic:plus(3),cap:'10 + 3 = 13'}]},
+  sets:[
+   {title:'Warm-up',intro:WARM,items:[P('10 = 3 + _',[7],fr(3),true,'ten frame'),P('10 = _ + 8',[2],fr(8),true,'ten frame')]},
+   {title:'Ten and some more',intro:'Count the extra dots in the second frame.',items:[
+     P('10 + 3 = _',[13],plus(3)),P('10 + 5 = _',[15],plus(5)),P('12 = 10 + _',[2],plus(2)),P('17 = 10 + _',[7],plus(7)),
+     P('10 + 8 = _',[18],plus(8)),P('10 + 1 = _',[11],plus(1)),P('16 = 10 + _',[6],plus(6)),P('14 = 10 + _',[4],plus(4))]}]},
+
+ {unit:3,title:'Fill the first frame',idea:'Move dots to make a ten',
+  learn:{text:'To add 8 + 5, move 2 dots from the second frame into the first. Now the first frame is full. That is 10. There are 3 dots left over, so 10 + 3 = 13.',demos:[{pic:mv(8,5),cap:'8 + 5 = 13'}]},
+  sets:[
+   {title:'Warm-up',intro:WARM,items:[P('10 + 4 = _',[14],plus(4)),P('15 = 10 + _',[5],plus(5))]},
+   {title:'Fill the first frame',wide:true,intro:'Move dots from the second frame to fill the first frame up to 10. Then count how many dots there are in all.',items:[
+     P(MOVE,[2,3,13],mv(8,5)),P(MOVE,[1,3,13],mv(9,4)),P(MOVE,[3,2,12],mv(7,5)),P(MOVE,[4,1,11],mv(6,5)),P(MOVE,[1,5,15],mv(9,6)),P(MOVE,[2,5,15],mv(8,7))]}]},
+
+ {unit:3,title:'Make a ten',idea:'Add through ten in your head',
+  learn:{text:'Now do the move in your head. Break the second number into two parts. One part makes 10 with the first number. 8 + 5 = 8 + 2 + 3 = 10 + 3 = 13.',demos:[{pic:mv(8,5),cap:'8 + 5 = 8 + 2 + 3 = 13'}]},
+  sets:[
+   {title:'Warm-up',wide:true,intro:WARM,items:[P(MOVE,[1,4,14],mv(9,5)),P(MOVE,[3,3,13],mv(7,6))]},
+   {title:'Make a ten first',wide:true,intro:'Break the second number into two parts. First make 10, then add the rest. If you get stuck, tap Show frames.',items:[
+     [8,5,[2,3,13]],[9,4,[1,3,13]],[7,4,[3,1,11]],[6,5,[4,1,11]],[9,6,[1,5,15]],[8,7,[2,5,15]],[7,6,[3,3,13]],[9,5,[1,4,14]]
+    ].map(function(x){return P(MT(x[0],x[1]),x[2],mv(x[0],x[1]),true,'frames');})}]}
+];
+
+/* ---------- helpers ---------- */
+var STORE_KEY='math-workbook-v1';
+var CYCLE=['','<','=','>'];
+var store={name:'',unlockAll:false,lessons:{}};
+var cur=null;
+
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function $(s){return document.querySelector(s);}
+function loadStore(){
+  try{var d=JSON.parse(localStorage.getItem(STORE_KEY)||'null');
+    if(d&&typeof d==='object'){store.name=d.name||'';store.unlockAll=!!d.unlockAll;store.lessons=d.lessons||{};}
+  }catch(e){}
+}
+function saveStore(){try{localStorage.setItem(STORE_KEY,JSON.stringify(store));}catch(e){}}
+function rec(li){return store.lessons[li]||(store.lessons[li]={v:{},c:[],done:false});}
+function isDone(li){return !!(store.lessons[li]&&store.lessons[li].done);}
+function isOpen(li){return li===0||store.unlockAll||isDone(li-1);}
+function started(li){var r=store.lessons[li];return !!(r&&r.v&&Object.keys(r.v).some(function(k){return r.v[k]!=='';}));}
+
+/* ---------- pictures ---------- */
+function dotsGrid(parts,label){
+  var w=el('span','dots');w.setAttribute('role','img');w.setAttribute('aria-label',label||'dots');
+  parts.forEach(function(p){for(var i=0;i<p[0];i++)w.append(el('i','dot '+p[1]));});
+  return w;
+}
+function frame(parts,label){
+  var f=el('span','frame');f.setAttribute('role','img');f.setAttribute('aria-label',label||'ten frame');
+  var cells=[];
+  parts.forEach(function(p){for(var i=0;i<p[0];i++)cells.push(p[1]);});
+  for(var i=0;i<10;i++){var c=el('span','cell');if(cells[i])c.append(el('i','dot '+cells[i]));f.append(c);}
+  return f;
+}
+function makePic(s){
+  var w;
+  if(s.type==='one')return dotsGrid([[s.n,'a']],s.n+' dots');
+  if(s.type==='two')return dotsGrid([[s.a,'a'],[s.b,'b']],s.a+' orange dots and '+s.b+' blue dots');
+  if(s.type==='part')return dotsGrid([[s.known,'a'],[s.total-s.known,'hid']],s.known+' dots showing, the rest hidden');
+  if(s.type==='frame')return frame([[s.n,'a']],'ten frame with '+s.n+' dots');
+  if(s.type==='plus'){w=el('span','frames');w.append(frame([[10,'a']],'full ten frame'),frame([[s.k,'b']],'second ten frame with '+s.k+' dots'));return w;}
+  if(s.type==='move'){w=el('span','frames');w.append(frame([[s.a,'a']],'first ten frame with '+s.a+' dots'),frame([[s.b,'b']],'second ten frame with '+s.b+' dots'));return w;}
+}
+
+/* ---------- problem building ---------- */
+function makeBox(id,n,r){
+  var i=el('input','box');
+  i.type='text';i.inputMode='numeric';i.pattern='[0-9]*';i.autocomplete='off';i.maxLength=2;i.id=id;
+  i.setAttribute('aria-label','answer box '+n);
+  i.addEventListener('input',function(){
+    i.value=i.value.replace(/\D/g,'');
+    i.classList.remove('right','wrong');
+    r.el.classList.remove('bad');r.state='empty';
+    saveLesson();
+  });
+  i.addEventListener('keydown',onKey);
+  r.inputs.push(i);
+  return i;
+}
+function makeEq(text,id,r){
+  var wrap=el('span','eq'),parts=text.split('_');
+  parts.forEach(function(p,k){
+    p=p.trim();
+    if(p)wrap.append(el('span','',p));
+    if(k<parts.length-1)wrap.append(makeBox(id+'b'+k,k+1,r));
+  });
+  return wrap;
+}
+function setSign(btn,v){
+  btn.dataset.v=v;
+  btn.textContent=v||'?';
+  btn.setAttribute('aria-label','comparison sign: '+(v||'not chosen yet'));
+}
+function onKey(e){
+  if(e.key!=='Enter')return;
+  e.preventDefault();
+  var all=[].slice.call(document.querySelectorAll('#lBody .box,#lBody .free')).filter(function(x){return !x.readOnly;});
+  var at=all.indexOf(e.target);
+  var sec=e.target.closest('section');
+  if(at>-1&&at<all.length-1&&all[at+1].closest('section')===sec)all[at+1].focus();
+  else sec.querySelector('button.go').click();
+}
+
+function buildSet(S,si,li){
+  var sec=el('section','card');
+  var head=el('div','card-head');
+  head.append(el('span','badge',String.fromCharCode(65+si)),el('h2','',S.title));
+  sec.append(head,el('p','intro',S.intro));
+  var grid=el('div','grid'+(S.wide?' wide':'')+(S.kind==='word'?' words':''));
+  var set={si:si,probs:[],checked:false};
+  S.items.forEach(function(it,pi){
+    var id='l'+li+'s'+si+'p'+pi;
+    var p=el('div','prob');
+    var r={el:p,inputs:[],answers:[],state:'empty',cmp:null};
+    if(S.kind==='compare'){
+      var btn=el('button','sign');btn.type='button';btn.id=id;
+      setSign(btn,'');
+      btn.addEventListener('click',function(){
+        var n=(CYCLE.indexOf(btn.dataset.v)+1)%CYCLE.length;
+        setSign(btn,CYCLE[n]);p.classList.remove('bad');r.state='empty';saveLesson();
+      });
+      r.cmp=btn;r.answers=[it.a];
+      p.append(el('span','side',it.n[0]),btn,el('span','side',it.n[1]));
+    }else if(S.kind==='word'){
+      p.classList.add('wordp');
+      r.answers=[it.a];
+      var q=el('p','q');
+      if(it.ch)q.append(el('span','tag','Challenge'));
+      q.append(document.createTextNode(String.fromCharCode(97+pi)+') '+it.q));
+      p.append(q);
+      var row=el('div','row');
+      var l1=el('label','','Number sentence');
+      var f=el('input','free');f.type='text';f.id=id+'s';f.autocomplete='off';f.maxLength=22;
+      f.addEventListener('keydown',onKey);f.addEventListener('input',saveLesson);
+      l1.append(f);
+      var l2=el('label','','Answer');
+      l2.append(makeBox(id+'b0',1,r));
+      row.append(l1,l2);
+      var m=el('p','model','One way to write it: '+it.s);m.hidden=true;
+      p.append(row,m);
+    }else{
+      r.answers=it.a;
+      var eq=makeEq(it.t,id,r);
+      if(it.pic&&!it.hint){
+        p.classList.add('stack');p.append(makePic(it.pic),eq);
+      }else if(it.pic&&it.hint){
+        p.classList.add('stack');
+        var top=el('div','toprow');
+        var label=it.hl||'dots';
+        var hb=el('button','quiet small','Show '+label);hb.type='button';hb.setAttribute('aria-expanded','false');
+        var pic=makePic(it.pic);pic.hidden=true;
+        hb.addEventListener('click',function(){
+          pic.hidden=!pic.hidden;
+          hb.textContent=(pic.hidden?'Show ':'Hide ')+label;
+          hb.setAttribute('aria-expanded',String(!pic.hidden));
+        });
+        top.append(eq,hb);p.append(top,pic);
+      }else p.append(eq);
+    }
+    set.probs.push(r);grid.append(p);
+  });
+  sec.append(grid);
+  var act=el('div','actions');
+  var go=el('button','go','Check this part');go.type='button';
+  var msg=el('span','msg');msg.setAttribute('aria-live','polite');
+  go.addEventListener('click',function(){checkSet(set);});
+  act.append(go,msg);sec.append(act);
+  set.msg=msg;cur.sets.push(set);
+  return sec;
+}
+
+/* ---------- grading ---------- */
+function grade(r){
+  if(r.cmp){
+    var v=r.cmp.dataset.v;
+    r.state=!v?'empty':(v===r.answers[0]?'ok':'bad');
+  }else{
+    r.inputs.forEach(function(inp,k){
+      var v=inp.value.trim();
+      inp.classList.remove('right','wrong');
+      if(v!=='')inp.classList.add(Number(v)===r.answers[k]?'right':'wrong');
+    });
+    var blank=r.inputs.some(function(i){return i.value.trim()==='';});
+    var allRight=r.inputs.every(function(i){return i.classList.contains('right');});
+    r.state=blank?'empty':(allRight?'ok':'bad');
+  }
+  r.el.classList.toggle('ok',r.state==='ok');
+  r.el.classList.toggle('bad',r.state==='bad');
+  if(r.state==='ok'){
+    r.inputs.forEach(function(i){i.readOnly=true;});
+    if(r.cmp)r.cmp.disabled=true;
+    var f=r.el.querySelector('.free');if(f)f.readOnly=true;
+    var m=r.el.querySelector('.model');if(m)m.hidden=false;
+  }
+}
+function checkSet(set,quiet){
+  set.probs.forEach(grade);
+  var n=set.probs.length;
+  var ok=set.probs.filter(function(r){return r.state==='ok';}).length;
+  var bad=set.probs.filter(function(r){return r.state==='bad';}).length;
+  var empty=n-ok-bad;
+  var text;
+  if(ok===n)text='★ All '+n+' correct. Great work!';
+  else{
+    var parts=[ok+' of '+n+' correct.'];
+    if(bad)parts.push('Change the orange ones and check again.');
+    if(empty)parts.push(empty+' not finished yet.');
+    text=parts.join(' ');
+  }
+  set.msg.textContent=text;
+  set.msg.className='msg'+(ok===n?' good':'');
+  set.checked=true;
+  saveLesson();
+  updateLesson(!quiet);
+}
+function lessonTotals(){
+  var total=0,ok=0;
+  cur.sets.forEach(function(s){s.probs.forEach(function(r){total++;if(r.state==='ok')ok++;});});
+  return {total:total,ok:ok};
+}
+function updateLesson(announce){
+  var t=lessonTotals();
+  $('#lScore').textContent=t.ok+' of '+t.total;
+  $('#lMeter').style.width=(100*t.ok/t.total)+'%';
+  var fin=$('#finish');
+  var complete=t.ok===t.total;
+  if(complete){
+    if(!isDone(cur.li)){rec(cur.li).done=true;saveStore();}
+    if(fin.hidden){
+      fin.hidden=false;
+      if(announce)fin.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+  }else fin.hidden=true;
+}
+
+/* ---------- saving a lesson ---------- */
+function saveLesson(){
+  if(!cur)return;
+  var r=rec(cur.li),v={};
+  cur.sets.forEach(function(s){s.probs.forEach(function(p){
+    p.inputs.forEach(function(i){v[i.id]=i.value;});
+    if(p.cmp)v[p.cmp.id]=p.cmp.dataset.v;
+    var f=p.el.querySelector('.free');if(f)v[f.id]=f.value;
+  });});
+  r.v=v;
+  r.c=cur.sets.filter(function(s){return s.checked;}).map(function(s){return s.si;});
+  saveStore();
+}
+function restoreLesson(){
+  var r=store.lessons[cur.li];
+  if(!r)return;
+  cur.sets.forEach(function(s){s.probs.forEach(function(p){
+    p.inputs.forEach(function(i){if(r.v[i.id]!=null)i.value=r.v[i.id];});
+    if(p.cmp&&r.v[p.cmp.id]!=null)setSign(p.cmp,r.v[p.cmp.id]);
+    var f=p.el.querySelector('.free');if(f&&r.v[f.id]!=null)f.value=r.v[f.id];
+  });});
+  (r.c||[]).forEach(function(si){if(cur.sets[si])checkSet(cur.sets[si],true);});
+}
+
+/* ---------- answer key text ---------- */
+function answerText(S,it,pi){
+  if(S.kind==='compare')return it.n[0]+' '+it.a+' '+it.n[1];
+  if(S.kind==='word')return String.fromCharCode(97+pi)+') '+it.s+(it.ch?'  (challenge)':'');
+  var k=0;return it.t.replace(/_/g,function(){return it.a[k++];});
+}
+
+/* ---------- two-tap buttons ---------- */
+function twoTap(btn,label,armedLabel,action){
+  var armed=false,timer=null;
+  btn.addEventListener('click',function(){
+    if(!armed){
+      armed=true;btn.textContent=armedLabel;
+      timer=setTimeout(function(){armed=false;btn.textContent=label;},4000);
+      return;
+    }
+    clearTimeout(timer);armed=false;btn.textContent=label;action();
+  });
+}
+
+/* ---------- views ---------- */
+function showHome(){
+  cur=null;
+  $('#lesson').hidden=true;$('#home').hidden=false;
+  $('#name').value=store.name;
+  $('#unlockAll').checked=store.unlockAll;
+  var done=LESSONS.filter(function(_,i){return isDone(i);}).length;
+  $('#homeProgress').textContent=done+' of '+LESSONS.length+' lessons done';
+  $('#homeMeter').style.width=(100*done/LESSONS.length)+'%';
+  var toc=$('#toc');toc.textContent='';
+  var lastUnit=0,nextMarked=false;
+  LESSONS.forEach(function(L,i){
+    if(L.unit!==lastUnit){lastUnit=L.unit;toc.append(el('h2','unit',UNITS[L.unit-1]));}
+    var open=isOpen(i),dn=isDone(i);
+    var isNext=open&&!dn&&!nextMarked;if(isNext)nextMarked=true;
+    var b=el('button','tile'+(dn?' done':'')+(open?'':' locked')+(isNext?' next':''));
+    b.type='button';b.disabled=!open;
+    var tt=el('span','tt');tt.append(el('strong','',L.title),el('small','',L.idea));
+    var st=dn?'★ Done':(!open?'Locked':(started(i)?'Keep going':'Start'));
+    b.append(el('span','num',String(i+1)),tt,el('span','st',st));
+    b.setAttribute('aria-label','Lesson '+(i+1)+': '+L.title+'. '+st);
+    b.addEventListener('click',function(){location.hash='lesson-'+(i+1);});
+    toc.append(b);
+  });
+  window.scrollTo(0,0);
+}
+function showLesson(li){
+  var L=LESSONS[li];
+  cur={li:li,sets:[]};
+  $('#home').hidden=true;$('#lesson').hidden=false;
+  $('#lTitle').textContent='Lesson '+(li+1)+': '+L.title;
+  var body=$('#lBody');body.textContent='';
+
+  var lc=el('section','learn');
+  lc.append(el('span','pill','Learn'),el('p','',L.learn.text));
+  if(L.learn.demos){
+    var ds=el('div','demos');
+    L.learn.demos.forEach(function(d){var w=el('div','demo');w.append(makePic(d.pic),el('span','cap',d.cap));ds.append(w);});
+    lc.append(ds);
+  }
+  body.append(lc);
+
+  L.sets.forEach(function(S,si){body.append(buildSet(S,si,li));});
+
+  var fin=el('section','finish');fin.id='finish';fin.hidden=true;
+  fin.append(el('h2','','★ Lesson complete!'));
+  fin.append(el('p','','Every problem is correct. Great work.'));
+  var fa=el('div','actions');
+  if(li+1<LESSONS.length){
+    var nb=el('button','go','Next lesson →');nb.type='button';
+    nb.addEventListener('click',function(){location.hash='lesson-'+(li+2);});
+    fa.append(nb);
+  }
+  var hb=el('button','quiet','All lessons');hb.type='button';
+  hb.addEventListener('click',function(){location.hash='home';});
+  var rb=el('button','quiet','Try this lesson again');rb.type='button';
+  twoTap(rb,'Try this lesson again','Tap again to clear my answers',function(){
+    var r=rec(li);r.v={};r.c=[];saveStore();showLesson(li);
+  });
+  fa.append(hb,rb);fin.append(fa);
+  body.append(fin);
+
+  var key=el('details');
+  key.append(el('summary','','Answer key for grown-ups'));
+  L.sets.forEach(function(S){
+    key.append(el('h3','',S.title));
+    S.items.forEach(function(it,pi){key.append(el('p','',answerText(S,it,pi)));});
+  });
+  body.append(key);
+
+  restoreLesson();
+  updateLesson(false);
+  window.scrollTo(0,0);
+}
+function route(){
+  var h=location.hash;
+  var m=/^#lesson-(\d+)$/.exec(h);
+  if(m){
+    var li=parseInt(m[1],10)-1;
+    if(li>=0&&li<LESSONS.length&&isOpen(li)){showLesson(li);return;}
+  }
+  showHome();
+}
+
+/* ---------- wire up ---------- */
+$('#backBtn').addEventListener('click',function(){location.hash='home';});
+$('#name').addEventListener('input',function(){store.name=$('#name').value;saveStore();});
+$('#unlockAll').addEventListener('change',function(){store.unlockAll=$('#unlockAll').checked;saveStore();showHome();});
+twoTap($('#resetAll'),'Erase all progress','Tap again to erase everything',function(){
+  var nm=store.name;store={name:nm,unlockAll:false,lessons:{}};saveStore();
+  if(location.hash&&location.hash!=='#home')location.hash='home';else showHome();
+});
+window.addEventListener('hashchange',route);
+loadStore();
+route();
+
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
+</body>
+</html>
